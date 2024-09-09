@@ -1,10 +1,11 @@
 import logging
 import os
 from pprint import pp
-from typing import Optional
+from typing import Optional, Generator
 
 from selenium.webdriver.firefox.service import Service
 import selenium.webdriver as wb
+from bs4 import BeautifulSoup
 
 # For working with Bright data!
 from selenium.webdriver import ChromeOptions, Remote
@@ -30,7 +31,7 @@ def scrape_website(url: str) -> str:
 
     # Driver for the browser (Firefox in this case)
     # Download compatible geckodriver from https://github.com/mozilla/geckodriver/releases
-    service = Service(executable_path=" geckodriver")
+    service = Service(executable_path="geckodriver")
     options = wb.FirefoxOptions()
     options.add_argument("--headless")
     driver = wb.Firefox(service=service, options=options)
@@ -96,7 +97,74 @@ def scrape_website_captcha_support(
         return html
 
 
+# The following 3 functions are used to retrieve only the essential text from the website!
+def extract_body_content(html_content: str) -> str:
+    """Get the page body HTML.
+
+    Extracts the page body HTML from the given HTML content. If the page body
+    exists, the function returns it as a string. Otherwise, an empty string is
+    returned.
+
+    Args:
+        html_content (str): The HTML content of the page.
+
+    Returns:
+        str: The page body HTML as a string.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+    body_content = soup.body
+    if body_content:
+        return str(body_content)
+    return ""
+
+
+def clean_body_content(body_content: str) -> str:
+    """
+    Clean the page body content by removing `<script>` and `<style>` tags.
+
+    Args:
+        body_content (str): The page body content as a string.
+
+    Returns:
+        str: The cleaned page body content as a string.
+    """
+    soup = BeautifulSoup(body_content, "html.parser")
+
+    for script_or_style in soup(["script", "style"]):
+        script_or_style.extract()
+
+    # Get text or further process the content
+    cleaned_content = soup.get_text(separator="\n")
+    cleaned_content = "\n".join(
+        line.strip() for line in cleaned_content.splitlines() if line.strip()
+    )
+
+    return cleaned_content
+
+
+def split_dom_content(dom_content, max_length=6000) -> Generator[str, None, None]:
+    """
+    Split the given DOM content into chunks of a given max_length.
+
+    Useful for splitting large HTML pages into smaller chunks, for example for
+    sending to a language model for processing.
+
+    Args:
+        dom_content (str): The HTML content of the page to split.
+        max_length (int, optional): The maximum length of each chunk. Defaults to 6000.
+
+    Yields:
+        str: A chunk of the given HTML content, up to max_length characters long.
+    """
+    return (
+        dom_content[i : i + max_length] for i in range(0, len(dom_content), max_length)
+    )
+
+
 # Template code!
 if __name__ == "__main__":
     source = scrape_website("https://amazon.ca/")
-    pp(source)
+    body = extract_body_content(source)
+    clean_body = clean_body_content(body)
+
+    pp(clean_body)
