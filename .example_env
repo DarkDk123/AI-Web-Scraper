@@ -1,0 +1,8 @@
+# HF API Token
+HUGGINGFACEHUB_API_TOKEN = "hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Chat Model
+HUGGINGFACE_MODEL_ID = "mistralai/Mistral-Nemo-Instruct-2407"
+
+# (Optional) Bright Data URL if used
+SBR_WEBDRIVER = "------------------------"
